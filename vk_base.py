@@ -12,13 +12,13 @@ else:
     raise OSError("Platform not supported")
 
 # Whether to enable validation layer or not
-ENABLE_VALIDATION = False
+ENABLE_VALIDATION = True
 
 class Debugger(object):
 
     def __init__(self, app):
         self.app = weakref.ref(app)
-        self.callback_fn=None
+        self.callback_fn = None
         self.debug_report_callback = None
 
     @staticmethod
@@ -39,7 +39,7 @@ class Debugger(object):
         callback_fn = vk.fn_DebugReportCallbackEXT(Debugger.print_message)
         create_info = vk.DebugReportCallbackCreateInfoEXT(
             s_type=vk.STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT,
-            next=None, 
+            next=None,
             flags=vk.DEBUG_REPORT_ERROR_BIT_EXT | vk.DEBUG_REPORT_WARNING_BIT_EXT,
             callback=callback_fn,
             user_data=None
@@ -89,7 +89,7 @@ class Application(object):
 
         create_info = vk.InstanceCreateInfo(
             s_type=vk.STRUCTURE_TYPE_INSTANCE_CREATE_INFO, next=None, flags=0,
-            application_info=pointer(app_info), 
+            application_info=pointer(app_info),
 
             enabled_layer_count=layer_count,
             enabled_layer_names=_layer_names,
@@ -303,61 +303,63 @@ class Application(object):
             self.post_present_buffers = post_present_buffers
         else:
             raise RuntimeError('Failed to present buffers')
-    
-    def create_2dimage(self, texWidth, texHeight):
-        image_info = vk.ImageCreateInfo (
-            s_type = vk.STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            next = None,
-            flags = 0,
-            image_type = vk.IMAGE_TYPE_2D,
-            format = vk.FORMAT_R8G8B8A8_UNORM,
-            tiling = vk.IMAGE_TILING_LINEAR,
-            initial_layout = vk.IMAGE_LAYOUT_PREINITIALIZED,
-            usage = vk.IMAGE_USAGE_TRANSFER_DST_BIT | vk.IMAGE_USAGE_SAMPLED_BIT,
-            samples = vk.SAMPLE_COUNT_1_BIT,
-            sharing_mode = vk.SHARING_MODE_EXCLUSIVE,
-            extent = vk.Extent3D(texWidth, texHeight, 1),
-            mip_levels = 1,
-            array_layers = 1
+
+    def create2dImage(self, texWidth, texHeight, imgformat, tiling, usage, properties):
+        image_info = vk.ImageCreateInfo(
+            s_type=vk.STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            next=None,
+            flags=0,
+            image_type=vk.IMAGE_TYPE_2D,
+            format=imgformat,
+            tiling=tiling,
+            initial_layout=vk.IMAGE_LAYOUT_PREINITIALIZED,
+            usage=usage,
+            samples=vk.SAMPLE_COUNT_1_BIT,
+            sharing_mode=vk.SHARING_MODE_EXCLUSIVE,
+            extent=vk.Extent3D(texWidth, texHeight, 1),
+            mip_levels=1,
+            array_layers=1
         )
 
         tex_image = vk.Image(0)
         result = self.CreateImage(self.device, byref(image_info), None, byref(tex_image))
         if result != vk.SUCCESS:
             raise RuntimeError('Failed to create texture image')
-        
+
         memreq = vk.MemoryRequirements()
         self.GetImageMemoryRequirements(self.device, tex_image, byref(memreq))
 
         memalloc_info = vk.MemoryAllocateInfo(
-            s_type = vk.STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            next = None,
-            allocation_size = 0,
-            memory_type_index = 0
+            s_type=vk.STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            next=None,
+            allocation_size=0,
+            memory_type_index=0
         )
 
         memalloc_info.allocation_size = memreq.size
-        memalloc_info.memory_type_index = self.get_memory_type(memreq.memory_type_bits, vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT)[1]
+        memalloc_info.memory_type_index = self.get_memory_type(
+            memreq.memory_type_bits,
+            vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT)[1]
 
         mem = vk.DeviceMemory(0)
         result = self.AllocateMemory(self.device, byref(memalloc_info), None, byref(mem))
         if result != vk.SUCCESS:
             raise RuntimeError('Could not alloc Memory')
-        
+
         result = self.BindImageMemory(self.device, tex_image, mem, 0)
         if result != vk.SUCCESS:
             raise RuntimeError('Could not bind the image memory to the image')
-        return (tex_image, tex_image_mem)
-    
-    def create_buffer(self, isize, iusage, properties):
-        buffer_info = vk.BufferCreateInfo (
-            s_type = vk.STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            next = None,
-            flags = 0,
-            size = isize,
-            usage = iusage,
-            sharing_mode = vk.SHARING_MODE_EXCLUSIVE,
-            queue_family_index_count=0, 
+        return (tex_image, mem)
+
+    def createBuffer(self, isize, iusage, properties):
+        buffer_info = vk.BufferCreateInfo(
+            s_type=vk.STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            next=None,
+            flags=0,
+            size=isize,
+            usage=iusage,
+            sharing_mode=vk.SHARING_MODE_EXCLUSIVE,
+            queue_family_index_count=0,
             queue_family_indices=None
         )
         buffer = vk.Buffer(0)
@@ -365,21 +367,217 @@ class Application(object):
         if result != vk.SUCCESS:
             raise 'Could not create a buffer'
         memreq = vk.MemoryRequirements()
-        self.GetImageMemoryRequirements(self.device, buffer, byref(memreq))
+        self.GetBufferMemoryRequirements(self.device, buffer, byref(memreq))
         memalloc_info = vk.MemoryAllocateInfo(
-            s_type = vk.STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            next = None,
-            allocation_size = memreq.size,
-            memory_type_index = self.get_memory_type(memreq.memory_type_bits, vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT)[1]
+            s_type=vk.STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            next=None,
+            allocation_size=memreq.size,
+            memory_type_index=self.get_memory_type(memreq.memory_type_bits, properties)[1]
         )
         mem = vk.DeviceMemory(0)
         result = self.AllocateMemory(self.device, byref(memalloc_info), None, byref(mem))
         if result != vk.SUCCESS:
             raise RuntimeError('Could not alloc Memory')
-        
+
         result = self.BindBufferMemory(self.device, buffer, mem, 0)
         return (buffer, mem)
-    
+
+    def beginSingleTimeCommands(self):
+        allocInfo = vk.CommandBufferAllocateInfo(
+            s_type=vk.STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            next=None,
+            command_pool=self.cmd_pool,
+            level=vk.COMMAND_BUFFER_LEVEL_PRIMARY,
+            command_buffer_count=1)
+        commandBuffer = vk.CommandBuffer(0)
+        self.AllocateCommandBuffers(self.device, byref(allocInfo), byref(commandBuffer))
+
+        beginInfo = vk.CommandBufferBeginInfo(
+            s_type=vk.STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            next=None,
+            flags=vk.COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+            inheritance_info=None)
+        result = self.BeginCommandBuffer(commandBuffer, byref(beginInfo))
+        if result != vk.SUCCESS:
+            raise RuntimeError('Could not begin Command Buffer')
+        return commandBuffer
+
+    def endSingleTimeCommands(self, commandBuffer):
+        result = self.EndCommandBuffer(commandBuffer)
+        assert result == vk.SUCCESS
+
+        submitInfo = vk.SubmitInfo(
+            s_type=vk.STRUCTURE_TYPE_SUBMIT_INFO,
+            next=None,
+            command_buffers=pointer(commandBuffer),
+            command_buffer_count=1,
+            signal_semaphore_count=0, signal_semaphores=None,
+        )
+        result = self.QueueSubmit(self.queue, 1, byref(submitInfo), 0)
+        assert result == vk.SUCCESS
+        result = self.QueueWaitIdle(self.queue)
+        assert result == vk.SUCCESS
+        self.FreeCommandBuffers(self.device, self.cmd_pool, 1, byref(commandBuffer))
+
+
+    def copyBuffer(self, srcBuffer, dstBuffer, size):
+        cmdBuffer = self.beginSingleTimeCommands()
+        copyRegion = vk.BufferCopy(
+            size=size
+        )
+        result = self.CmdCopyBuffer(cmdBuffer, srcBuffer, dstBuffer, 1, byref(copyRegion))
+        endSingleTimeCommands(cmdBuffer)
+
+    def transitionImageLayout(self, image, format, oldLayout, newLayout):
+        cmdBuffer = self.beginSingleTimeCommands()
+
+        subres_range = vk.ImageSubresourceRange(
+            aspect_mask=vk.IMAGE_ASPECT_COLOR_BIT, base_mip_level=0,
+            level_count=1, base_array_layer=0, layer_count=1
+        )
+        barrier = vk.ImageMemoryBarrier(
+            s_type=vk.STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            old_layout=oldLayout,
+            new_layout=newLayout,
+            src_queue_family_index=vk.QUEUE_FAMILY_IGNORED,
+            dst_queue_family_index=vk.QUEUE_FAMILY_IGNORED,
+            image=image,
+            subresource_range=subres_range
+        )
+
+        if oldLayout == vk.IMAGE_LAYOUT_PREINITIALIZED and \
+        newLayout == vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+            barrier.srcAccessMask = vk.ACCESS_HOST_WRITE_BIT
+            barrier.dstAccessMask = vk.ACCESS_TRANSFER_WRITE_BIT
+        elif oldLayout == vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL and \
+        newLayout == vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+            barrier.srcAccessMask = vk.ACCESS_TRANSFER_WRITE_BIT
+            barrier.dstAccessMask = vk.ACCESS_SHADER_READ_BIT
+        else:
+            raise RuntimeError("unsupported layout transition!")
+
+
+        result = self.CmdPipelineBarrier(
+            cmdBuffer,
+            vk.PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            vk.PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            0,
+            0,
+            None,
+            0,
+            None,
+            1,
+            byref(barrier))
+        self.endSingleTimeCommands(cmdBuffer)
+
+    def uploadToStaging(self, upload_data, size):
+        if (self.STAGING_BUFFER_SIZE < size):
+            self.DestroyBuffer(self.device, self.stagingBuffer, None)
+            self.FreeMemory(self.device, self.stagingMem, None)
+            self.createStagingBuffer(size * 2)
+
+        data = vk.c_void_p(0)
+        result = self.MapMemory(self.device, self.stagingMem, 0 , size, 0, byref(data))
+        if result != vk.SUCCESS:
+            raise 'Could not map memory to local'
+        memmove(data, upload_data, size)
+        self.UnmapMemory(self.device, self.stagingMem)
+
+    def copyBuffer(self, srcBuf, dstBuf, offset, size):
+        cmdBuffer = self.beginSingleTimeCommands()
+        copyRegion = vk.BufferCopy(
+            src_offset=offset,
+            dst_offset=0,
+            size=size)
+        result = self.CmdCopyBuffer(cmdBuffer, srcBuf, dstBuf, 1, byref(copyRegion))
+
+        self.endSingleTimeCommands(cmdBuffer)
+
+
+    def copyBufferToImage(self, buffer, image, width, height):
+        self.transitionImageLayout(
+            image,
+            vk.FORMAT_R8G8B8_UNORM,
+            vk.IMAGE_LAYOUT_PREINITIALIZED,
+            vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+            )
+
+        cmdBuffer = self.beginSingleTimeCommands()
+        subres_layer = vk.ImageSubresourceLayers(
+            aspect_mask=vk.IMAGE_ASPECT_COLOR_BIT, mip_level=0,
+            base_array_layer=0, layer_count=1
+        )
+        region = vk.BufferImageCopy(
+            buffer_offset=0,
+            buffer_row_length=0,
+            buffer_image_height=0,
+            image_subresource=subres_layer,
+            image_offset=vk.Offset3D(0, 0, 0),
+            image_extent=vk.Extent3D(width, height, 1)
+        )
+        result = self.CmdCopyBufferToImage(
+            cmdBuffer, buffer, image,
+            vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+            byref(region))
+
+        self.endSingleTimeCommands(cmdBuffer)
+        self.transitionImageLayout(
+            image,
+            vk.FORMAT_R8G8B8A8_UNORM,
+            vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+
+    def createImageView(self, image, color_format):
+        subresource_range = vk.ImageSubresourceRange(
+                aspect_mask=vk.IMAGE_ASPECT_COLOR_BIT, base_mip_level=0,
+                level_count=1, base_array_layer=0, layer_count=1,
+            )
+        components = vk.ComponentMapping(
+            r=vk.COMPONENT_SWIZZLE_R, g=vk.COMPONENT_SWIZZLE_G,
+            b=vk.COMPONENT_SWIZZLE_B, a=vk.COMPONENT_SWIZZLE_A
+        )
+
+        viewInfo = vk.ImageViewCreateInfo(
+            s_type=vk.STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            next=None, flags=0, image=image,
+            view_type=vk.IMAGE_VIEW_TYPE_2D, format=color_format,
+            components=components, subresource_range=subresource_range
+        )
+        imageView = vk.ImageView(0)
+        result = self.CreateImageView(self.device, byref(viewInfo), None, byref(imageView))
+        assert result == vk.SUCCESS
+        return imageView
+
+    def createImageSampler(self):
+        samplerInfo = vk.SamplerCreateInfo(
+            s_type=vk.STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            next=None,
+            mag_filter=vk.FILTER_LINEAR,
+            min_filter=vk.FILTER_LINEAR,
+            address_mode_u=vk.SAMPLER_ADDRESS_MODE_REPEAT,
+            address_mode_v=vk.SAMPLER_ADDRESS_MODE_REPEAT,
+            address_mode_w=vk.SAMPLER_ADDRESS_MODE_REPEAT,
+            anisotropy_enable=vk.TRUE,
+            max_anisotropy=1.0,
+            border_color=vk.BORDER_COLOR_INT_OPAQUE_BLACK,
+            unnormalized_coordinates=vk.FALSE,
+            compare_enable=vk.FALSE,
+            compare_op=vk.COMPARE_OP_ALWAYS,
+            mipmap_mode=vk.SAMPLER_MIPMAP_MODE_LINEAR,
+            mip_lod_bias=0.0,
+            min_lod=0.0,
+            max_lod=0.0
+        )
+        imageSampler=vk.Sampler(0)
+        result = self.CreateSampler(self.device, pointer(samplerInfo), None, byref(imageSampler))
+        assert result == vk.SUCCESS
+        return imageSampler
+
+    def createStagingBuffer(self, size):
+        self.STAGING_BUFFER_SIZE = size
+        (self.stagingBuffer, self.stagingMem ) = self.createBuffer(self.STAGING_BUFFER_SIZE, vk.BUFFER_USAGE_TRANSFER_SRC_BIT, vk.MEMORY_PROPERTY_HOST_VISIBLE_BIT|
+        vk.MEMORY_PROPERTY_HOST_COHERENT_BIT)
+
     def create_depth_stencil(self):
         width, height = self.window.dimensions()
 
@@ -395,8 +593,9 @@ class Application(object):
 
         format_props = vk.FormatProperties()
         for format in depth_formats:
-            self.GetPhysicalDeviceFormatProperties(self.gpu, format, byref(format_props));
-            if format_props.optimal_tiling_features & vk.FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT != 0:
+            self.GetPhysicalDeviceFormatProperties(self.gpu, format, byref(format_props))
+            if format_props.optimal_tiling_features & \
+            vk.FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT != 0:
                 depth_format = format
                 break
 
@@ -744,7 +943,7 @@ class Application(object):
         self.create_pipeline_cache()
         self.create_framebuffers()
         self.flush_setup_buffer()
-
+        self.createStagingBuffer(8192)
 
         self.window.show()
 
@@ -754,6 +953,9 @@ class Application(object):
 
         dev = self.device
         if dev is not None:
+            self.DestroyBuffer(self.device, self.stagingBuffer, None)
+            self.FreeMemory(self.device, self.stagingMem, None)
+
             if self.swapchain is not None:
                 self.swapchain.destroy()
 
@@ -790,7 +992,6 @@ class Application(object):
             if self.cmd_pool:
                 self.DestroyCommandPool(dev, self.cmd_pool, None)
 
-        
             self.DestroyDevice(dev, None)
 
         if ENABLE_VALIDATION:

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from ctypes import (c_void_p, c_float, c_uint8, c_uint, c_uint64, c_int, c_size_t, c_char, c_char_p, cast, Structure, Union, POINTER)
+from ctypes import (
+    c_void_p, c_float, c_uint8, c_uint, c_uint64, c_int, c_size_t,
+    c_char, c_char_p, cast, Structure, Union, POINTER)
 from platform import system
 
 
@@ -51,7 +53,7 @@ def load_functions(vk_object, functions_list, loader):
             print('Function {} could not be loaded. (__debug__ == True)'.format(py_name))
     return functions
 
-API_VERSION_1_0 = MAKE_VERSION(1,0,0)
+API_VERSION_1_0 = MAKE_VERSION(1, 0, 0)
 
 
 # BASETYPES
@@ -964,7 +966,8 @@ RASTERIZATION_ORDER_RELAXED_AMD = 1
 
 # FUNC POINTERS
 
-fn_InternalAllocationNotification = FUNCTYPE( None, c_void_p, c_size_t, InternalAllocationType, SystemAllocationScope, )
+fn_InternalAllocationNotification = FUNCTYPE( 
+    None, c_void_p, c_size_t, InternalAllocationType, SystemAllocationScope, )
 fn_InternalFreeNotification = FUNCTYPE( None, c_void_p, c_size_t, InternalAllocationType, SystemAllocationScope, )
 fn_ReallocationFunction = FUNCTYPE( c_void_p, c_void_p, c_void_p, c_size_t, c_size_t, SystemAllocationScope, )
 fn_AllocationFunction = FUNCTYPE( c_void_p, c_void_p, c_size_t, c_size_t, SystemAllocationScope, )
