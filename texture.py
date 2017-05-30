@@ -29,7 +29,7 @@ class TextureApplication(Application):
 
         self.render_semaphores['present'] = present
         self.render_semaphores['render'] = render
-    
+
     def create_quad(self):
         data = c_void_p(0)
 
@@ -66,7 +66,7 @@ class TextureApplication(Application):
         self.indexBuffer = indiceBuffer
         self.indexMem = indiceMem
         self.describe_bindings()
-    
+
 
     def create_uniform_buffers(self):
         (self.uniformBuffer, self.uniformBufferMem) = self.createBuffer(
@@ -127,15 +127,17 @@ class TextureApplication(Application):
                     if j < 16:
                         image_data[i * texWidth + j] = green
                     else:
-                        image_data[i * texWidth + j] = gray 
+                        image_data[i * texWidth + j] = gray
                 j += 1
-            j=0
+            j = 0
             i += 1
         print("end memory mapping")
         self.uploadToStaging(image_data, imsize)
-        (deviceImg,deviceImgMem) = self.create2dImage(texWidth, texHeight, vk.FORMAT_R8G8B8A8_UNORM,
-        vk.IMAGE_TILING_OPTIMAL, vk.IMAGE_USAGE_TRANSFER_DST_BIT|vk.IMAGE_USAGE_SAMPLED_BIT,
-        vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+        (deviceImg, deviceImgMem) = self.create2dImage(
+            texWidth, texHeight, vk.FORMAT_R8G8B8A8_UNORM,
+            vk.IMAGE_TILING_OPTIMAL,
+            vk.IMAGE_USAGE_TRANSFER_DST_BIT|vk.IMAGE_USAGE_SAMPLED_BIT,
+            vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
         self.deviceImg = deviceImg
         self.deviceImgMem = deviceImgMem
 
@@ -145,7 +147,7 @@ class TextureApplication(Application):
         data = c_void_p(0)
         matsize = sizeof(Mat4)*3
 
-        # Projection 
+        # Projection
         width, height = self.window.dimensions()
         self.matrices[0].set_data(perspective(60.0, width/height, 0.1, 256.0))
 
@@ -226,7 +228,7 @@ class TextureApplication(Application):
         self.input_state = input_state
 
         # Vertex input state
-		# Describes the topoloy used with this pipeline 
+		# Describes the topoloy used with this pipeline
         input_assembly_state = vk.PipelineInputAssemblyStateCreateInfo(
             s_type=vk.STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, next=None,
             flags=0, primitive_restart_enable=0,
@@ -275,14 +277,14 @@ class TextureApplication(Application):
         # Depth and stencil state
 		# Describes depth and stenctil test and compare ops
         # Basic depth compare setup with depth writes and depth test enabled
-		# No stencil used 
+		# No stencil used
         op_state = vk.StencilOpState(
             fail_op=vk.STENCIL_OP_KEEP, pass_op=vk.STENCIL_OP_KEEP,
             compare_op=vk.COMPARE_OP_ALWAYS
         )
         depth_stencil_state = vk.PipelineDepthStencilStateCreateInfo(
-            s_type=vk.STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, next=None, 
-            flags=0, depth_test_enable=1, depth_write_enable=1, 
+            s_type=vk.STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, next=None,
+            flags=0, depth_test_enable=1, depth_write_enable=1,
             depth_compare_op=vk.COMPARE_OP_LESS_OR_EQUAL,
             depth_bounds_test_enable=0, stencil_test_enable=0,
             front=op_state, back=op_state
@@ -291,7 +293,7 @@ class TextureApplication(Application):
         # Multi sampling state
         # No multi sampling used in this example
         multisample_state = vk.PipelineMultisampleStateCreateInfo(
-            s_type=vk.STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, next=None, 
+            s_type=vk.STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, next=None,
             flags=0, rasterization_samples=vk.SAMPLE_COUNT_1_BIT
         )
 
@@ -304,7 +306,7 @@ class TextureApplication(Application):
 
         create_info = vk.GraphicsPipelineCreateInfo(
             s_type=vk.STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, next=None,
-            flags=0, stage_count=2, 
+            flags=0, stage_count=2,
             stages=cast(shader_stages, POINTER(vk.PipelineShaderStageCreateInfo)),
             vertex_input_state=pointer(input_state),
             input_assembly_state=pointer(input_assembly_state),
@@ -326,7 +328,7 @@ class TextureApplication(Application):
         result = self.CreateGraphicsPipelines(self.device, self.pipeline_cache, 1, byref(create_info), None, byref(pipeline))
         if result != vk.SUCCESS:
              raise RuntimeError('Failed to create the graphics pipeline')
-        
+
         self.pipeline = pipeline
 
     def create_descriptor_pool(self):
@@ -405,7 +407,7 @@ class TextureApplication(Application):
         self.descriptor_set = descriptor_set
 
     def init_command_buffers(self):
-        
+
         begin_info = vk.CommandBufferBeginInfo(
             s_type=vk.STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, next=None
         )
@@ -422,7 +424,7 @@ class TextureApplication(Application):
         render_pass_begin = vk.RenderPassBeginInfo(
             s_type=vk.STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, next=None,
             render_pass=self.render_pass, render_area=render_area,
-            clear_value_count=2, 
+            clear_value_count=2,
             clear_values = cast(clear_values, POINTER(vk.ClearValue))
         )
 
@@ -442,13 +444,13 @@ class TextureApplication(Application):
                 new_layout=vk.IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 src_queue_family_index=vk.QUEUE_FAMILY_IGNORED,
                 dst_queue_family_index=vk.QUEUE_FAMILY_IGNORED,
-                image=self.swapchain.images[index], 
+                image=self.swapchain.images[index],
                 subresource_range=subres
             )
 
             self.CmdPipelineBarrier(
-				cmdbuf, 
-				vk.PIPELINE_STAGE_ALL_COMMANDS_BIT, 
+				cmdbuf,
+				vk.PIPELINE_STAGE_ALL_COMMANDS_BIT,
 				vk.PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				0,
 				0, None,
@@ -508,26 +510,26 @@ class TextureApplication(Application):
                 new_layout=vk.IMAGE_LAYOUT_PRESENT_SRC_KHR,
                 src_queue_family_index=vk.QUEUE_FAMILY_IGNORED,
                 dst_queue_family_index=vk.QUEUE_FAMILY_IGNORED,
-                image=self.swapchain.images[index], 
+                image=self.swapchain.images[index],
                 subresource_range=subres
             )
 
             self.CmdPipelineBarrier(
-				cmdbuf, 
-				vk.PIPELINE_STAGE_ALL_COMMANDS_BIT, 
+				cmdbuf,
+				vk.PIPELINE_STAGE_ALL_COMMANDS_BIT,
 				vk.PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				0,
 				0, None,
 				0, None,
 				1, byref(barrier));
 
-            
+
             assert(self.EndCommandBuffer(cmdbuf) == vk.SUCCESS)
 
     def resize_display(self, width, height):
         if not self.initialized:
-            return 
-            
+            return
+
         Application.resize_display(self, width, height)
 
         self.init_command_buffers()
@@ -564,7 +566,7 @@ class TextureApplication(Application):
         )
         assert(self.QueueSubmit(self.queue, 1, byref(submit_info), vk.Fence(0)) == vk.SUCCESS)
         assert(self.QueueWaitIdle(self.queue) == vk.SUCCESS)
-        
+
         # The submit information structure contains a list of
 		# command buffers and semaphores to be submitted to a queue
 		# If you want to submit multiple command buffers, pass an array
@@ -574,7 +576,7 @@ class TextureApplication(Application):
             s_type=vk.STRUCTURE_TYPE_SUBMIT_INFO,
             wait_dst_stage_mask=pointer(stages),
 
-            # The wait semaphore ensures that the image is presented 
+            # The wait semaphore ensures that the image is presented
 		    # before we start submitting command buffers again
             wait_semaphore_count=1,
             wait_semaphores=pointer(self.render_semaphores['present']),
@@ -586,7 +588,7 @@ class TextureApplication(Application):
             signal_semaphores=pointer(self.render_semaphores['render']),
 
             # Submit the currently active command buffer
-            command_buffer_count=1, 
+            command_buffer_count=1,
             command_buffers=pointer(drawbuf)
         )
 
@@ -604,12 +606,12 @@ class TextureApplication(Application):
             wait_semaphores = pointer(self.render_semaphores['render']),
             wait_semaphore_count=1
         )
-        
+
         result = self.QueuePresentKHR(self.queue, byref(present_info));
         if result != vk.SUCCESS:
             raise "Could not render the scene"
 
-    
+
     async def render(self):
         """
             Render the scene
@@ -629,7 +631,7 @@ class TextureApplication(Application):
             self.draw()
             self.DeviceWaitIdle(self.device)
             #time.sleep(1/30)
-            
+
             frame_counter += 1
             t_end = loop.time()
             delta = t_end-t_start
@@ -653,7 +655,7 @@ class TextureApplication(Application):
 
         self.createImageTexture()
         self.imageView = self.createImageView(self.deviceImg, vk.FORMAT_R8G8B8A8_UNORM)
-        self.sampler = self.createImageSampler()
+        self.sampler = self.createImageSampler(vk.FILTER_NEAREST, vk.FILTER_NEAREST)
         self.create_semaphores()
         self.create_quad()
         self.create_uniform_buffers()

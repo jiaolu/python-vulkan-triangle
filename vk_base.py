@@ -12,7 +12,7 @@ else:
     raise OSError("Platform not supported")
 
 # Whether to enable validation layer or not
-ENABLE_VALIDATION = True
+ENABLE_VALIDATION = False
 
 class Debugger(object):
 
@@ -141,7 +141,7 @@ class Application(object):
             byref(queue_families_count),
             None
         )
-        
+
         if queue_families_count.value == 0:
             raise RuntimeError('No queues families found for the default GPU')
 
@@ -178,7 +178,7 @@ class Application(object):
 
         extensions = (b'VK_KHR_swapchain',)
         _extensions = cast((c_char_p*len(extensions))(*extensions), POINTER(c_char_p))
-        
+
         if ENABLE_VALIDATION:
             layer_count = 1
             layer_names = (b'VK_LAYER_LUNARG_standard_validation',)
@@ -190,8 +190,8 @@ class Application(object):
         create_info = vk.DeviceCreateInfo(
             s_type=vk.STRUCTURE_TYPE_DEVICE_CREATE_INFO, next=None, flags=0,
             queue_create_info_count=1, queue_create_infos=queue_create_infos,
-            
-            enabled_layer_count=layer_count, 
+
+            enabled_layer_count=layer_count,
             enabled_layer_names=_layer_names,
 
             enabled_extension_count=1,
@@ -208,7 +208,7 @@ class Application(object):
             functions = chain(vk.load_functions(device, vk.QueueFunctions, self.GetDeviceProcAddr),
                               vk.load_functions(device, vk.DeviceFunctions, self.GetDeviceProcAddr),
                               vk.load_functions(device, vk.CommandBufferFunctions, self.GetDeviceProcAddr))
-            
+
             for name, function in functions:
                 setattr(self, name, function)
 
@@ -217,7 +217,7 @@ class Application(object):
             print(vk.c_int(result))
             raise RuntimeError('Could not create device.')
 
-        
+
         # Get the physical device memory properties.
         self.gpu_mem = vk.PhysicalDeviceMemoryProperties()
         self.GetPhysicalDeviceMemoryProperties(self.gpu, byref(self.gpu_mem))
@@ -249,7 +249,7 @@ class Application(object):
 
     def create_setup_buffer(self):
         create_info = vk.CommandBufferAllocateInfo(
-            s_type=vk.STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, next=None, 
+            s_type=vk.STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, next=None,
             command_pool=self.cmd_pool,
             level=vk.COMMAND_BUFFER_LEVEL_PRIMARY,
             command_buffer_count=1
@@ -548,12 +548,12 @@ class Application(object):
         assert result == vk.SUCCESS
         return imageView
 
-    def createImageSampler(self):
+    def createImageSampler(self, magfilter, minfilter):
         samplerInfo = vk.SamplerCreateInfo(
             s_type=vk.STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
             next=None,
-            mag_filter=vk.FILTER_LINEAR,
-            min_filter=vk.FILTER_LINEAR,
+            mag_filter=magfilter,
+            min_filter=minfilter,
             address_mode_u=vk.SAMPLER_ADDRESS_MODE_REPEAT,
             address_mode_v=vk.SAMPLER_ADDRESS_MODE_REPEAT,
             address_mode_w=vk.SAMPLER_ADDRESS_MODE_REPEAT,
@@ -635,7 +635,7 @@ class Application(object):
         self.GetImageMemoryRequirements(self.device, depthstencil_image, byref(memreq))
         mem_alloc_info.allocation_size = memreq.size
         mem_alloc_info.memory_type_index = self.get_memory_type(memreq.memory_type_bits, vk.MEMORY_PROPERTY_DEVICE_LOCAL_BIT)[1]
-        
+
         depthstencil_mem = vk.DeviceMemory(0)
         result = self.AllocateMemory(self.device, byref(mem_alloc_info), None, byref(depthstencil_mem))
         if result != vk.SUCCESS:
@@ -644,7 +644,7 @@ class Application(object):
         result = self.BindImageMemory(self.device, depthstencil_image, depthstencil_mem, 0)
         if result != vk.SUCCESS:
             raise RuntimeError('Could not bind the depth stencil memory to the image')
-            
+
         self.set_image_layout(
             self.setup_buffer, depthstencil_image,
             vk.IMAGE_ASPECT_DEPTH_BIT | vk.IMAGE_ASPECT_STENCIL_BIT,
@@ -657,7 +657,7 @@ class Application(object):
         result = self.CreateImageView(self.device, byref(create_view_info), None, byref(depthstencil_view))
         if result != vk.SUCCESS:
             raise RuntimeError('Could not create image view for depth stencil')
-            
+
         self.formats['depth'] = depth_format
         self.depth_stencil['image'] = depthstencil_image
         self.depth_stencil['mem'] = depthstencil_mem
@@ -730,7 +730,7 @@ class Application(object):
     def create_framebuffers(self):
         attachments = cast((vk.ImageView*2)(), POINTER(vk.ImageView))
         attachments[1] = self.depth_stencil['view']
-        
+
 
         width, height = self.window.dimensions()
 
@@ -749,7 +749,7 @@ class Application(object):
             result = self.CreateFramebuffer(self.device, byref(create_info), None, byref(fb))
             if result != vk.SUCCESS:
                 raise RuntimeError('Could not create the framebuffers')
-            
+
             self.framebuffers[index] = fb
 
     def flush_setup_buffer(self):
@@ -767,7 +767,7 @@ class Application(object):
         result = self.QueueSubmit(self.queue, 1, byref(submit_info), 0)
         if result != vk.SUCCESS:
             raise RuntimeError("Setup buffer sumbit failed")
-        
+
         result = self.QueueWaitIdle(self.queue)
         if result != vk.SUCCESS:
             raise RuntimeError("Setup execution failed")
@@ -776,7 +776,7 @@ class Application(object):
         self.setup_buffer = None
 
     def set_image_layout(self, cmd, image, aspect_mask, old_layout, new_layout, subres=None):
-        
+
         if subres is None:
             subres = vk.ImageSubresourceRange(
                 aspect_mask=aspect_mask, base_mip_level=0,
@@ -817,7 +817,7 @@ class Application(object):
 
         elif new_layout == vk.IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
             barrier.dst_access_mask |= vk.ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
-        
+
         elif new_layout == vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
             barrier.src_access_mask = vk.ACCESS_HOST_WRITE_BIT | vk.ACCESS_TRANSFER_WRITE_BIT
             barrier.dst_access_mask = vk.ACCESS_SHADER_READ_BIT
@@ -872,7 +872,7 @@ class Application(object):
 
     def resize_display(self, width, height):
         if not self.initialized:
-            return 
+            return
 
         self.create_setup_buffer()
 
@@ -921,14 +921,14 @@ class Application(object):
         self.swapchain = None
         self.cmd_pool = None
         self.setup_buffer = None
-        self.draw_buffers = []  
+        self.draw_buffers = []
         self.post_present_buffers = []
         self.render_pass = None
         self.pipeline_cache = None
         self.framebuffers = None
         self.depth_stencil = {'image':None, 'mem':None, 'view':None}
         self.formats = {'color':None, 'depth':None}
-        
+
         # Vulkan objets initialization
         self.create_instance()
         self.create_swapchain()
@@ -972,7 +972,7 @@ class Application(object):
 
             for mod in self.shaders_modules:
                 self.DestroyShaderModule(self.device, mod, None)
-            
+
             if self.framebuffers is not None:
                 for fb in self.framebuffers:
                     self.DestroyFramebuffer(self.device, fb, None)
@@ -985,7 +985,7 @@ class Application(object):
 
             if self.depth_stencil['mem'] is not None:
                 self.FreeMemory(dev, self.depth_stencil['mem'], None)
-            
+
             if self.pipeline_cache:
                 self.DestroyPipelineCache(self.device, self.pipeline_cache, None)
 
@@ -1023,7 +1023,7 @@ class Swapchain(BaseSwapchain):
         result = app.GetPhysicalDeviceSurfacePresentModesKHR(app.gpu, self.surface, byref(prez_count), None)
         if result != vk.SUCCESS and prez_count.value > 0:
             raise RuntimeError('Failed to get surface presenting mode')
-        
+
         prez = (c_uint*prez_count.value)()
         app.GetPhysicalDeviceSurfacePresentModesKHR(app.gpu, self.surface, byref(prez_count), cast(prez, POINTER(c_uint)) )
 
@@ -1077,12 +1077,12 @@ class Swapchain(BaseSwapchain):
 
         #Create the swapchain
         create_info = vk.SwapchainCreateInfoKHR(
-            s_type=vk.STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, next=None, 
+            s_type=vk.STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, next=None,
             flags=0, surface=self.surface, min_image_count=swapchain_image_count,
-            image_format=color_format, image_color_space=color_space, 
+            image_format=color_format, image_color_space=color_space,
             image_extent=swapchain_extent, image_array_layers=1, image_usage=vk.IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             image_sharing_mode=vk.SHARING_MODE_EXCLUSIVE, queue_family_index_count=0,
-            queue_family_indices=cast(None, POINTER(c_uint)), pre_transform=transform, 
+            queue_family_indices=cast(None, POINTER(c_uint)), pre_transform=transform,
             composite_alpha=vk.COMPOSITE_ALPHA_OPAQUE_BIT_KHR, present_mode=present_mode,
             clipped=1,
             old_swapchain=(self.swapchain or vk.SwapchainKHR(0))
@@ -1090,7 +1090,7 @@ class Swapchain(BaseSwapchain):
 
         swapchain = vk.SwapchainKHR(0)
         result = app.CreateSwapchainKHR(app.device, byref(create_info), None, byref(swapchain))
-        
+
         if result == vk.SUCCESS:
             if self.swapchain is not None: #Destroy the old swapchain if it exists
                 self.destroy_swapchain()
@@ -1098,7 +1098,7 @@ class Swapchain(BaseSwapchain):
             self.create_images(swapchain_image_count, color_format)
         else:
             raise RuntimeError('Failed to create the swapchain')
-        
+
     def create_images(self, req_image_count, color_format):
         app = self.app()
 
@@ -1106,7 +1106,7 @@ class Swapchain(BaseSwapchain):
         result = app.GetSwapchainImagesKHR(app.device, self.swapchain, byref(image_count), None)
         if result != vk.SUCCESS and req_image_count != image_count.value:
             raise RuntimeError('Failed to get the swapchain images')
- 
+
         self.images = (vk.Image * image_count.value)()
         self.views = (vk.ImageView * image_count.value)()
 
@@ -1131,7 +1131,7 @@ class Swapchain(BaseSwapchain):
             )
 
             app.set_image_layout(
-                app.setup_buffer, image, 
+                app.setup_buffer, image,
                 vk.IMAGE_ASPECT_COLOR_BIT,
                 vk.IMAGE_LAYOUT_UNDEFINED,
                 vk.IMAGE_LAYOUT_PRESENT_SRC_KHR)
