@@ -105,8 +105,8 @@ class TextureApplication(Application):
 
     def createImageTexture(self):
         print("create image Texture")
-        texWidth = 32
-        texHeight = 32
+        texWidth = 640
+        texHeight = 480
         texSize = texWidth * texHeight
         image_data = (Pixel * texSize)()
         imsize = sizeof(image_data)
@@ -116,21 +116,40 @@ class TextureApplication(Application):
         gray = Pixel(128, 128, 128, 255)
         i = 0
         j = 0
-        while i < texHeight:
-            while j < texWidth:
-                if i < 16:
-                    if j < 16:
-                        image_data[i * texWidth + j] = red
-                    else:
-                        image_data[i * texWidth + j] = blue
-                else:
-                    if j < 16:
-                        image_data[i * texWidth + j] = green
-                    else:
-                        image_data[i * texWidth + j] = gray
+        while i < texHeight/2:
+            while j < texWidth/2:
+                image_data[i * texWidth + j] = red
                 j += 1
             j = 0
             i += 1
+
+        i = 0
+        j = int(texWidth/2)
+        while i < texHeight/2:
+            while j < texWidth:
+                image_data[i * texWidth + j] = green
+                j += 1
+            j = int(texWidth/2)
+            i += 1
+
+        i = int(texHeight/2)
+        j = int(texWidth/2)
+        while i < texHeight:
+            while j < texWidth:
+                image_data[i * texWidth + j] = blue
+                j += 1
+            j = int(texWidth/2)
+            i += 1
+
+        i = int(texHeight/2)
+        j = 0
+        while i < texHeight:
+            while j < texWidth/2:
+                image_data[i * texWidth + j] = gray
+                j += 1
+            j = 0
+            i += 1
+
         print("end memory mapping")
         self.uploadToStaging(image_data, imsize)
         (deviceImg, deviceImgMem) = self.create2dImage(
@@ -596,9 +615,9 @@ class TextureApplication(Application):
         assert(self.QueueSubmit(self.queue, 1, byref(submit_info), vk.Fence(0)) == vk.SUCCESS)
 
         # Present the current buffer to the swap chain
-		# We pass the signal semaphore from the submit info
-		# to ensure that the image is not rendered until
-		# all commands have been submitted
+        # We pass the signal semaphore from the submit info
+        # to ensure that the image is not rendered until
+        # all commands have been submitted
         present_info = vk.PresentInfoKHR(
             s_type=vk.STRUCTURE_TYPE_PRESENT_INFO_KHR, next=None,
             swapchain_count=1, swapchains=pointer(self.swapchain.swapchain),
