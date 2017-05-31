@@ -521,7 +521,7 @@ class TextureApplication(Application):
 				0,
 				0, None,
 				0, None,
-				1, byref(barrier));
+				1, byref(barrier))
 
 
             assert(self.EndCommandBuffer(cmdbuf) == vk.SUCCESS)
@@ -607,7 +607,7 @@ class TextureApplication(Application):
             wait_semaphore_count=1
         )
 
-        result = self.QueuePresentKHR(self.queue, byref(present_info));
+        result = self.QueuePresentKHR(self.queue, byref(present_info))
         if result != vk.SUCCESS:
             raise "Could not render the scene"
 
