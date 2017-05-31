@@ -141,7 +141,7 @@ class TextureApplication(Application):
         self.deviceImg = deviceImg
         self.deviceImgMem = deviceImgMem
 
-        self.copyBufferToImage(self.stagingBuffer, deviceImg, texWidth, texHeight)
+        self.copyBufferToImage(self.stagingBuffer, deviceImg, texWidth, texHeight, vk.FORMAT_R8G8B8A8_UNORM)
 
     def update_uniform_buffers(self):
         data = c_void_p(0)
