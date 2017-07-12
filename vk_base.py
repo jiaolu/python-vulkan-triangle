@@ -901,8 +901,7 @@ class Application(object):
     def __init__(self):
         self.initialized = False
         self.running = False
-        self.zoom = -2.5               # Scene zoom
-        self.rotation = (c_float*3)()  # Scene rotation
+
         self.shaders_modules = []      # A list of compiled shaders. GC'ed with the application
         self.debugger = Debugger(self) # Throw errors if validations layers are activated
 

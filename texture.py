@@ -146,7 +146,8 @@ class TextureApplication(Application):
     def update_uniform_buffers(self):
         data = c_void_p(0)
         matsize = sizeof(Mat4)*3
-
+        self.zoom = -1.0               # Scene zoom
+        self.rotation = (c_float*3)()  # Scene rotation
         # Projection
         width, height = self.window.dimensions()
         self.matrices[0].set_data(perspective(60.0, width/height, 0.1, 256.0))
@@ -301,7 +302,7 @@ class TextureApplication(Application):
 		# Shaders are loaded from the SPIR-V format, which can be generated from glsl
         shader_stages = (vk.PipelineShaderStageCreateInfo * 2)(
             self.load_shader('texture.vert.spv', vk.SHADER_STAGE_VERTEX_BIT),
-            self.load_shader('texture.frag.spv', vk.SHADER_STAGE_FRAGMENT_BIT)
+            self.load_shader('font.frag.spv', vk.SHADER_STAGE_FRAGMENT_BIT)
         )
 
         create_info = vk.GraphicsPipelineCreateInfo(
