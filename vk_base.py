@@ -494,10 +494,10 @@ class Application(object):
         self.endSingleTimeCommands(cmdBuffer)
 
 
-    def copyBufferToImage(self, buffer, image, width, height):
+    def copyBufferToImage(self, buffer, image, width, height, format):
         self.transitionImageLayout(
             image,
-            vk.FORMAT_R8G8B8_UNORM,
+            format,
             vk.IMAGE_LAYOUT_PREINITIALIZED,
             vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
             )
@@ -523,7 +523,7 @@ class Application(object):
         self.endSingleTimeCommands(cmdBuffer)
         self.transitionImageLayout(
             image,
-            vk.FORMAT_R8G8B8A8_UNORM,
+            format,
             vk.IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             vk.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 
