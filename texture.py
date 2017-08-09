@@ -44,7 +44,7 @@ class TextureApplication(Application):
         vertices_size = sizeof(Vertex)*4
 
         # Setup indices
-        indices_data = (c_uint*6)(0,1,3,1,2,3)
+        indices_data = (c_uint*4)(0,1,2,3)
         indices_size = sizeof(indices_data)
 
         self.uploadToStaging(vertices_data, vertices_size)
@@ -252,7 +252,7 @@ class TextureApplication(Application):
         input_assembly_state = vk.PipelineInputAssemblyStateCreateInfo(
             s_type=vk.STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, next=None,
             flags=0, primitive_restart_enable=0,
-            topology=vk.PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,  #This pipeline renders vertex data as triangle lists
+            topology=vk.PRIMITIVE_TOPOLOGY_PATCH_LIST,  #This pipeline renders vertex data as triangle lists
         )
 
         # Rasterization state
@@ -319,18 +319,26 @@ class TextureApplication(Application):
 
         # Load shaders
 		# Shaders are loaded from the SPIR-V format, which can be generated from glsl
-        shader_stages = (vk.PipelineShaderStageCreateInfo * 2)(
+        stage_count = 4
+        shader_stages = (vk.PipelineShaderStageCreateInfo * stage_count)(
             self.load_shader('texture.vert.spv', vk.SHADER_STAGE_VERTEX_BIT),
-            self.load_shader('font.frag.spv', vk.SHADER_STAGE_FRAGMENT_BIT)
+            self.load_shader('simple.tesc.spv', vk.SHADER_STAGE_TESSELLATION_CONTROL_BIT),
+            self.load_shader('simple.tese.spv', vk.SHADER_STAGE_TESSELLATION_EVALUATION_BIT),
+            self.load_shader('texture.frag.spv', vk.SHADER_STAGE_FRAGMENT_BIT)
+        )
+
+        tessellation_state = vk.PipelineTessellationStateCreateInfo(
+            s_type=vk.STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO, next=None,
+            flags=0, patch_control_points=4
         )
 
         create_info = vk.GraphicsPipelineCreateInfo(
             s_type=vk.STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, next=None,
-            flags=0, stage_count=2,
+            flags=0, stage_count=stage_count,
             stages=cast(shader_stages, POINTER(vk.PipelineShaderStageCreateInfo)),
             vertex_input_state=pointer(input_state),
             input_assembly_state=pointer(input_assembly_state),
-            tessellation_state=None,
+            tessellation_state=pointer(tessellation_state),
             viewport_state=pointer(viewport_state),
             rasterization_state=pointer(raster_state),
             multisample_state=pointer(multisample_state),
@@ -510,7 +518,7 @@ class TextureApplication(Application):
             self.CmdBindIndexBuffer(cmdbuf, self.indexBuffer, 0, vk.INDEX_TYPE_UINT32)
 
             # Draw indexed triangle
-            self.CmdDrawIndexed(cmdbuf, 6, 1, 0, 0, 1)
+            self.CmdDrawIndexed(cmdbuf, 4, 1, 0, 0, 0)
 
             self.CmdEndRenderPass(cmdbuf)
 

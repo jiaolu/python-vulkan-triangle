@@ -6,7 +6,7 @@
 layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec2 inTex;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projectionMatrix;
 	mat4 modelMatrix;
@@ -15,7 +15,7 @@ layout (binding = 0) uniform UBO
 
 layout (location = 0) out vec2 outTex;
 
-void main() 
+void main()
 {
 	outTex = inTex;
 	gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(inPos.xyz, 1.0);
