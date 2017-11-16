@@ -2,6 +2,7 @@ import platform, asyncio, vk, weakref
 from ctypes import (c_void_p, c_float, c_uint8, c_uint, c_uint64, c_int, c_size_t, c_char, c_char_p, cast, Structure, Union, POINTER)
 from ctypes import cast, c_char_p, c_uint, c_ubyte, c_ulonglong, pointer, POINTER, byref, c_float, Structure, sizeof, memmove
 from itertools import chain
+import subprocess
 
 system_name = platform.system()
 if system_name == 'Windows':
@@ -843,8 +844,11 @@ class Application(object):
 
     def load_shader(self, name, stage):
         # Read the shader data
-        path = './shaders/{}'.format(name)
-        shader_f = open(path, 'rb')
+        inputFile = './shaders/{}'.format(name)
+        outputFile = './shaders/{}.spv'.format(name)
+        cmd = "glslangValidator -V {} -o {}".format(inputFile, outputFile)
+        subprocess.check_output(cmd)
+        shader_f = open(outputFile, 'rb')
         shader_bin = shader_f.read()
         shader_bin_size = len(shader_bin)
         shader_bin = (c_ubyte*shader_bin_size)(*shader_bin)

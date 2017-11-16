@@ -321,10 +321,10 @@ class TextureApplication(Application):
 		# Shaders are loaded from the SPIR-V format, which can be generated from glsl
         stage_count = 4
         shader_stages = (vk.PipelineShaderStageCreateInfo * stage_count)(
-            self.load_shader('texture.vert.spv', vk.SHADER_STAGE_VERTEX_BIT),
-            self.load_shader('simple.tesc.spv', vk.SHADER_STAGE_TESSELLATION_CONTROL_BIT),
-            self.load_shader('simple.tese.spv', vk.SHADER_STAGE_TESSELLATION_EVALUATION_BIT),
-            self.load_shader('texture.frag.spv', vk.SHADER_STAGE_FRAGMENT_BIT)
+            self.load_shader('texture.vert', vk.SHADER_STAGE_VERTEX_BIT),
+            self.load_shader('simple.tesc', vk.SHADER_STAGE_TESSELLATION_CONTROL_BIT),
+            self.load_shader('simple.tese', vk.SHADER_STAGE_TESSELLATION_EVALUATION_BIT),
+            self.load_shader('texture.frag', vk.SHADER_STAGE_FRAGMENT_BIT)
         )
 
         tessellation_state = vk.PipelineTessellationStateCreateInfo(
