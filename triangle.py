@@ -242,8 +242,8 @@ class TriangleApplication(Application):
         # Load shaders
 		# Shaders are loaded from the SPIR-V format, which can be generated from glsl
         shader_stages = (vk.PipelineShaderStageCreateInfo * 2)(
-            self.load_shader('triangle.vert.spv', vk.SHADER_STAGE_VERTEX_BIT),
-            self.load_shader('triangle.frag.spv', vk.SHADER_STAGE_FRAGMENT_BIT)
+            self.load_shader('triangle.vert', vk.SHADER_STAGE_VERTEX_BIT),
+            self.load_shader('triangle.frag', vk.SHADER_STAGE_FRAGMENT_BIT)
         )
 
         create_info = vk.GraphicsPipelineCreateInfo(
@@ -448,7 +448,9 @@ class TriangleApplication(Application):
     def update_uniform_buffers(self):
         data = vk.c_void_p(0)
         matsize = sizeof(Mat4)*3
-
+        self.zoom = -2.0               # Scene zoom
+        self.rotation = (c_float*3)()  # Scene rotation
+        
         # Projection 
         width, height = self.window.dimensions()
         self.matrices[0].set_data(perspective(60.0, width/height, 0.1, 256.0))
